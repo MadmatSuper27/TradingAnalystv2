@@ -167,6 +167,16 @@ def get_stock_data(tickers, start, end, interval):
         st.error(f"Error fetching data: {e}")
         return None
 
+def color_metric(label, value_str, condition, color="#00ff00"):
+    """Render a metric with conditional coloring using HTML."""
+    final_color = color if condition else "#ffffff"
+    st.markdown(f"""
+        <div style="margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 0.9rem; color: #8b949e; font-weight: 500;">{label}</p>
+            <p style="margin: 0; font-size: 2.2rem; font-weight: 700; color: {final_color}; line-height: 1.2;">{value_str}</p>
+        </div>
+    """, unsafe_allow_html=True)
+
 # --- Main Logic ---
 st.title("🚀 Stock Pioneer Dashboard")
 
@@ -373,13 +383,15 @@ if len(date_range) == 2:
                 with col2:
                     st.subheader("Key Metrics")
                     roe = info.get('returnOnEquity')
-                    if roe:
-                        st.metric("ROE", f"{roe*100:.2f}%")
+                    if roe is not None:
+                        color_metric("ROE", f"{roe*100:.2f}%", roe > 0.17)
+                    
                     inst_holders = info.get('heldPercentInstitutions')
-                    if inst_holders:
-                        st.metric("Institutional Holders", f"{inst_holders*100:.2f}%")
-                    else:
-                        st.metric("Institutional Holders", info.get('heldPercentInstitutions', "N/A"))
+                    if inst_holders is not None:
+                        if isinstance(inst_holders, (float, int)):
+                            color_metric("Institutional Holders", f"{inst_holders*100:.2f}%", False)
+                        else:
+                            color_metric("Institutional Holders", str(inst_holders), False)
                     
                     # YoY Quarterly EPS Growth
                     if quarterly_f is not None and not quarterly_f.empty:
@@ -394,7 +406,7 @@ if len(date_range) == 2:
                                 last_year_eps = eps_vals.iloc[4]
                                 if last_year_eps != 0:
                                     yoy_eps_growth = (latest_eps / last_year_eps - 1) * 100
-                                    st.metric("YoY Quarterly EPS Growth", f"{yoy_eps_growth:.2f}%")
+                                    color_metric("YoY Quarterly EPS Growth", f"{yoy_eps_growth:.2f}%", yoy_eps_growth > 25)
                     
                     # Key Reminders Table
                     st.markdown("---")
